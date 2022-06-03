@@ -38,7 +38,9 @@ jobs:
       name: Run what-if
       with:
         inlineScript: |
-          echo "WHAT_IF_RESULT=$(az deployment group what-if --resource-group ${{ env.prodResourceGroupName }} --template-file ./main.bicep)" >> $GITHUB_ENV
+          echo 'WHAT_IF_RESULT<<EOF' >> $GITHUB_ENV
+          echo "$(az deployment group what-if --resource-group ${{ env.prodResourceGroupName }} --template-file ./main.bicep)" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
           echo "${{ env.WHAT_IF_RESULT }}"
     - uses: thollander/actions-comment-pull-request@v1
       with:
