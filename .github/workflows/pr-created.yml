@@ -46,9 +46,9 @@ jobs:
       with:
         message: |
           The following actions will occur when this PR is merged into main and deployed to production:
-          ------------------------------
+          ```
           ${{ env.WHAT_IF_RESULT }}
-          ------------------------------
+          ```
           
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
