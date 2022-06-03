@@ -7,6 +7,7 @@ on:
 
 env:
   resourceGroupName: pr_${{ github.event.number }}
+  prodResourceGroupName: rg-prod-lpbicepdemo
   resourceGroupLocation: eastus
   storageAccountName: demooverride
 
@@ -33,9 +34,7 @@ jobs:
       name: Run what-if
       with:
         inlineScript: |
-            WHAT_IF_RESULT=`az deployment group what-if \
-              --resource-group ${{ env.resourceGroupName }} \
-              --template-file ./main.bicep \`
+            WHAT_IF_RESULT=`az deployment group what-if --resource-group ${{ env.resourceGroupName }} --template-file ./main.bicep`
             echo $WHAT_IF_RESULT
             echo $WHAT_IF_RESULT >> $GITHUB_ENV
     - uses: thollander/actions-comment-pull-request@v1
@@ -51,6 +50,7 @@ jobs:
 
   deploy: 
     runs-on: ubuntu-latest
+    needs: [lint]
     steps:
       - uses: actions/checkout@v2
       - uses: azure/login@v1
