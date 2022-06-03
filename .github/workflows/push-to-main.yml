@@ -5,6 +5,11 @@ on:
     branches:
       - main
 
+
+defaults:
+  run:
+    shell: bash
+
 env: 
   resourceGroupName: 'rg-prod-lpbicepdemo'
   storageAccountName: 'demooverride'

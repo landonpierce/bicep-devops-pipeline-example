@@ -5,6 +5,10 @@ on:
   pull_request:
     branches: [main]
 
+defaults:
+  run:
+    shell: bash
+
 env:
   resourceGroupName: pr_${{ github.event.number }}
   prodResourceGroupName: rg-prod-lpbicepdemo
@@ -34,7 +38,7 @@ jobs:
       name: Run what-if
       with:
         inlineScript: |
-            WHAT_IF_RESULT=`az deployment group what-if --resource-group ${{ env.resourceGroupName }} --template-file ./main.bicep`
+            WHAT_IF_RESULT=$(az deployment group what-if --resource-group ${{ env.resourceGroupName }} --template-file ./main.bicep)
             echo $WHAT_IF_RESULT
             echo $WHAT_IF_RESULT >> $GITHUB_ENV
     - uses: thollander/actions-comment-pull-request@v1
