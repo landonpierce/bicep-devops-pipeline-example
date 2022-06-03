@@ -1,11 +1,18 @@
+name: Push To Main - Validate and Deploy to Production
+
 on:
   push:
     branches:
       - main
 
+
+defaults:
+  run:
+    shell: bash
+
 env: 
-  AZURE_RESOURCEGROUP_NAME: 'rg-prod-lpbicepdemo'
-  STORAGE_ACCT_NAME: 'demooverride'
+  resourceGroupName: 'rg-prod-lpbicepdemo'
+  storageAccountName: 'demooverride'
 
 jobs:
   lint: 
@@ -27,9 +34,9 @@ jobs:
     - uses: azure/arm-deploy@v1
       with:
         deploymentName: ${{ github.run_number }}
-        resourceGroupName: ${{ env.AZURE_RESOURCEGROUP_NAME }}
+        resourceGroupName: ${{ env.resourceGroupName }}
         template: ./main.bicep
-        #parameters: storageAcctName=${{ env.STORAGE_ACCT_NAME }}
+        #parameters: storageAcctName=${{ env.storageAccountName }}
         deploymentMode: Validate
 
   preview:
@@ -48,10 +55,10 @@ jobs:
       with:
         inlineScript: |
             az deployment group what-if \
-              --resource-group ${{ env.AZURE_RESOURCEGROUP_NAME }} \
+              --resource-group ${{ env.resourceGroupName }} \
               --template-file ./main.bicep \
 
-        #--parameters storageAcctName=${{ env.STORAGE_ACCT_NAME }}
+        #--parameters storageAcctName=${{ env.storageAccountName }}
         
   deploy:
     runs-on: ubuntu-latest
@@ -65,6 +72,6 @@ jobs:
     - uses: azure/arm-deploy@v1
       with:
         deploymentName: ${{ github.run_number }}
-        resourceGroupName: ${{ env.AZURE_RESOURCEGROUP_NAME }}
+        resourceGroupName: ${{ env.resourceGroupName }}
         template: ./main.bicep
-        parameters: environmentType=${{ env.ENVIRONMENT_TYPE }}
+        #parameters: storageAcctName=${{ env.storageAccountName }}

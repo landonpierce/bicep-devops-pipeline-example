@@ -1,0 +1,83 @@
+name: PR Validation - Deploy to Test Environment
+concurrency: ${{ github.event.number }}
+
+on: 
+  pull_request:
+    branches: [main]
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  resourceGroupName: pr_${{ github.event.number }}
+  prodResourceGroupName: rg-prod-lpbicepdemo
+  resourceGroupLocation: eastus
+  storageAccountName: demooverride
+
+jobs:
+  lint: 
+    runs-on: ubuntu-latest
+    steps: 
+    - uses: actions/checkout@v2
+    - name: 'Lint Bicep template'
+      run: az bicep build --file ./main.bicep
+
+  preview:
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: azure/login@v1
+      name: Sign in to Azure
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - uses: Azure/cli@v1
+      name: Run what-if
+      with:
+        inlineScript: |
+          echo 'WHAT_IF_RESULT<<EOF' >> $GITHUB_ENV
+          echo "$(az deployment group what-if --resource-group ${{ env.prodResourceGroupName }} --template-file ./main.bicep)" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo "${{ env.WHAT_IF_RESULT }}"
+    - uses: thollander/actions-comment-pull-request@v1
+      with:
+        message: |
+          The following actions will occur when this PR is merged into main and deployed to production:
+          ```
+          ${{ env.WHAT_IF_RESULT }}
+          ```
+          
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  deploy: 
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: azure/login@v1
+        name: Sign in to Azure
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}    
+
+      - uses: Azure/cli@v1
+        name: Create resource group
+        with: 
+          inlineScript: |
+            az group create \
+              --name ${{ env.resourceGroupName }} \
+              --location ${{ env.resourceGroupLocation }}
+
+      - uses: azure/arm-deploy@v1
+        id: deploy
+        name: Deploy Bicep file
+        with:
+          failOnStdErr: false
+          deploymentName: ${{ github.run_number }}
+          resourceGroupName: ${{ env.resourceGroupName }}
+          template: ./main.bicep
+          # parameters: >
+          #   storageAcctName=${{ env.storageAccountName }}
