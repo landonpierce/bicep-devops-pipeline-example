@@ -1,0 +1,70 @@
+on:
+  push:
+    branches:
+      - main
+
+env: 
+  AZURE_RESOURCEGROUP_NAME: 'rg-prod-lpbicepdemo'
+  STORAGE_ACCT_NAME: 'demooverride'
+
+jobs:
+  lint: 
+    runs-on: ubuntu-latest
+    steps: 
+    - uses: actions/checkout@v2
+    - name: 'Lint Bicep template'
+      run: az bicep build --file ./main.bicep
+  
+  validate: 
+    runs-on: ubuntu-latest
+    steps: 
+    - uses: actions/checkout@v2
+
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}    
+
+    - uses: azure/arm-deploy@v1
+      with:
+        deploymentName: ${{ github.run_number }}
+        resourceGroupName: ${{ env.AZURE_RESOURCEGROUP_NAME }}
+        template: ./main.bicep
+        #parameters: storageAcctName=${{ env.STORAGE_ACCT_NAME }}
+        deploymentMode: Validate
+
+  preview:
+    runs-on: ubuntu-latest
+    needs: [lint, validate]
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: azure/login@v1
+      name: Sign in to Azure
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - uses: Azure/cli@v1
+      name: Run what-if
+      with:
+        inlineScript: |
+            az deployment group what-if \
+              --resource-group ${{ env.AZURE_RESOURCEGROUP_NAME }} \
+              --template-file ./main.bicep \
+
+        #--parameters storageAcctName=${{ env.STORAGE_ACCT_NAME }}
+        
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Production
+    needs: [preview]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - uses: azure/arm-deploy@v1
+      with:
+        deploymentName: ${{ github.run_number }}
+        resourceGroupName: ${{ env.AZURE_RESOURCEGROUP_NAME }}
+        template: ./main.bicep
+        parameters: environmentType=${{ env.ENVIRONMENT_TYPE }}
